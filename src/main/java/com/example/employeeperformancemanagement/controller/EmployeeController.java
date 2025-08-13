@@ -27,8 +27,6 @@ public class EmployeeController {
     @Autowired
     private EmployeeService employeeService;
 
-    // Removed unused DepartmentService dependency
-
     @GetMapping
     public ResponseEntity<PageResponse<EmployeeListItemResponse>> getEmployees(
             @RequestParam(value = "reviewDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate reviewDate,
@@ -37,6 +35,12 @@ public class EmployeeController {
             @RequestParam(value = "projects", required = false) List<String> projects,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "20") int size) {
+
+        if (score != null && reviewDate == null) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "score filter requires reviewDate");
+        }
 
         // Support CSV values in a single param instance while also supporting repeated params
         List<String> departmentContains = departments == null ? null : departments.stream()
@@ -79,7 +83,7 @@ public class EmployeeController {
     }
 
     @PostMapping
-    public ResponseEntity<EmployeeResponse> createEmployee(@RequestBody EmployeeCreateRequest request) {
+    public ResponseEntity<EmployeeResponse> createEmployee(@RequestBody @jakarta.validation.Valid EmployeeCreateRequest request) {
         Employee saved = employeeService.createEmployee(request);
         // For creation response, omit projects and reviews by default
         return ResponseEntity.ok(employeeService.getEmployeeDetailsResponse(saved.getId(), false, false, 0));
